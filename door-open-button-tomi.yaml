@@ -1,0 +1,47 @@
+blueprint:
+  name: Haustür Öffnen mit Button (Mehrere Personen)
+  description: Öffnet die Haustür, wenn eine oder mehrere Personen nach Hause kommen und den Button innerhalb von 10 Minuten drücken.
+  domain: automation
+  input:
+    person_entities:
+      name: Personen-Tracker
+      description: Liste der Personen-Tracker, die verwendet werden, um die Ankunft zu erkennen.
+      selector:
+        entity:
+          domain: device_tracker
+          multiple: true
+    lock_entity:
+      name: Türschloss
+      description: Das Türschloss, das geöffnet werden soll.
+      selector:
+        entity:
+          domain: lock
+    button_device:
+      name: Button-Gerät
+      description: Das Gerät mit dem Button, das gedrückt werden muss.
+      selector:
+        device:
+          integration: shelly
+
+trigger:
+  - platform: state
+    entity_id: !input person_entities
+    to: 'home'
+
+action:
+  - service: homeassistant.update_entity
+    target:
+      entity_id: !input lock_entity
+  - wait_for_trigger:
+      - platform: device
+        device_id: !input button_device
+        domain: shelly
+        type: single
+        subtype: button
+    continue_on_timeout: false
+    timeout: '00:10:00'
+  - service: lock.open
+    target:
+      entity_id: !input lock_entity
+
+mode: single
